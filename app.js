@@ -77,57 +77,76 @@ setInterval(() => {
     }
   }
 }, 2000);
-
 // ==================================================================
-//  LIVE MONITORING  (UPDATED VALUES)
+//  LIVE MONITORING (USING Wh)  --> UPDATED WITH REALISTIC RANGES
 // ==================================================================
 function updateLiveDemo() {
-  let totalCurrent = 0, totalPower = 0, totalEnergy = 0;
+  let totalCurrent = 0,
+    totalPower = 0,
+    totalEnergy = 0;
 
-  for (let i = 1; i <= 4; i++) {
-    let v = 12;
-    let c = 0;
-
-    if (relayStates[i]) {
-      if (i === 1) { // LOAD 1
-        v = (Math.random() * 0.3 + 12).toFixed(2);
-        c = (Math.random() * 0.02 + 0.12).toFixed(2);
-      } 
-      else if (i === 2) { // LOAD 2
-        v = (Math.random() * 0.2 + 12).toFixed(2);
-        c = (Math.random() * 0.01 + 0.12).toFixed(2);
-      } 
-      else if (i === 3) { // LOAD 3
-        v = 12;
-        c = 0.12;
-      } 
-      else if (i === 4) { // FAN (LOAD 4)
-        v = (Math.random() * 0.5 + 12).toFixed(2);
-        c = (Math.random() * 0.05 + 0.11).toFixed(2);
-      }
-    } else {
-      c = 0;
-    }
-
-    const p = (v * c).toFixed(1);
-    const e = (relayStates[i] ? (Math.random() * 5).toFixed(2) : 0);
-
-    document.getElementById(`v${i}`).textContent = v + "V";
-    document.getElementById(`c${i}`).textContent = c + "A";
-    document.getElementById(`p${i}`).textContent = p + "W";
-    document.getElementById(`e${i}`).textContent = e + "Wh";
-    document.getElementById(`s${i}`).textContent = relayStates[i] ? "ON" : "OFF";
-
-    totalCurrent += parseFloat(c);
-    totalPower += parseFloat(p);
-    totalEnergy += parseFloat(e);
+  // LOAD 1  --> 12.0 - 12.3V & 0.12 - 0.14A
+  if (relayStates[1]) {
+    var v1 = (12 + Math.random() * 0.3).toFixed(1);
+    var c1 = (0.12 + Math.random() * 0.02).toFixed(2);
+  } else {
+    var v1 = "0.0";
+    var c1 = "0.00";
   }
 
-  document.getElementById("tv").textContent = "12V";
+  // LOAD 2  --> 12.0 - 12.2V & 0.12 - 0.13A
+  if (relayStates[2]) {
+    var v2 = (12 + Math.random() * 0.2).toFixed(1);
+    var c2 = (0.12 + Math.random() * 0.01).toFixed(2);
+  } else {
+    var v2 = "0.0";
+    var c2 = "0.00";
+  }
+
+  // LOAD 3  --> FIXED 12.0V & 0.12A
+  if (relayStates[3]) {
+    var v3 = (12).toFixed(1);
+    var c3 = (0.12).toFixed(2);
+  } else {
+    var v3 = "0.0";
+    var c3 = "0.00";
+  }
+
+  // FAN  --> 12.0 - 12.5V & 0.11 - 0.16A
+  if (relayStates[4]) {
+    var v4 = (12 + Math.random() * 0.5).toFixed(1);
+    var c4 = (0.11 + Math.random() * 0.05).toFixed(2);
+  } else {
+    var v4 = "0.0";
+    var c4 = "0.00";
+  }
+
+  // ---- Update HTML Values ----
+  const voltages = [v1, v2, v3, v4];
+  const currents = [c1, c2, c3, c4];
+
+  for (let i = 1; i <= 4; i++) {
+    const power = (voltages[i - 1] * currents[i - 1]).toFixed(1);
+    const energy = (currents[i - 1] > 0 ? Math.random() * 5 : 0).toFixed(2);
+
+    document.getElementById(`v${i}`).textContent = voltages[i - 1] + "V";
+    document.getElementById(`c${i}`).textContent = currents[i - 1] + "A";
+    document.getElementById(`p${i}`).textContent = power + "W";
+    document.getElementById(`e${i}`).textContent = energy + "Wh";
+    document.getElementById(`s${i}`).textContent = relayStates[i] ? "ON" : "OFF";
+
+    totalCurrent += parseFloat(currents[i - 1]);
+    totalPower += parseFloat(power);
+    totalEnergy += parseFloat(energy);
+  }
+
+  // ---- TOTALS ----
+  document.getElementById("tv").textContent = "12V"; // fixed input
   document.getElementById("tc").textContent = totalCurrent.toFixed(2) + "A";
   document.getElementById("tp").textContent = totalPower.toFixed(1) + "W";
   document.getElementById("te").textContent = totalEnergy.toFixed(2) + "Wh";
 }
+
 setInterval(updateLiveDemo, 2000);
 
 // ==================================================================
