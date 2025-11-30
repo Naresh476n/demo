@@ -147,6 +147,7 @@ document.getElementById("tv").textContent = avgVoltage + "V";  // Average Voltag
 document.getElementById("tc").textContent = totalCurrent.toFixed(2) + "A"; // Total Current
 document.getElementById("tp").textContent = totalPower.toFixed(1) + "W";   // Total Power
 
+}
 
 setInterval(updateLiveDemo, 2000);
 
