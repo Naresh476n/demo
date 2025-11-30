@@ -163,25 +163,40 @@ setInterval(updateLiveDemo, 2000);
 
 
 // ==================================================================
-//  CHART (REALISTIC RANDOM Wh VALUES)
+//  CHARTS (IN Wh)
 // ==================================================================
+const filterSelect = document.getElementById("filterSelect");
+const filterInputs = {
+  day: document.getElementById("singleDay"),
+  month: document.getElementById("singleMonth"),
+  dayRange: document.getElementById("dayRangeInputs"),
+  monthRange: document.getElementById("monthRangeInputs"),
+};
+filterSelect.addEventListener("change", () => {
+  Object.values(filterInputs).forEach((el) => el.classList.add("hidden"));
+  const selected = filterSelect.value;
+  if (filterInputs[selected]) filterInputs[selected].classList.remove("hidden");
+});
+
+let chart;
+
+// --- Cost calculation ---
+function calculateCost(totalWh) {
+  if (totalWh <= 50) return totalWh * 4;
+  else if (totalWh <= 100) return totalWh * 6;
+  else return totalWh * 8;
+}
+
+// --- Chart Load Button ---
 document.getElementById("loadCharts").addEventListener("click", () => {
   const ctx = document.getElementById("chart").getContext("2d");
   if (chart) chart.destroy();
 
   const selected = filterSelect.value;
   const deviceLabels = ["Light 1", "Light 2", "Light 3", "Fan"];
-
-  // --- FIXED WH RANGES (Wh per DAY) ---
-  const whRanges = {
-    1: [1.5, 3, 4.5, 6, 7.5],     // Load 1
-    2: [1.5, 3, 4.5, 6, 7.5],     // Load 2
-    3: [1.4, 2.8, 4.2, 5.6, 7],   // Load 3
-    4: [1.6, 3.2, 4.8, 6.4, 8],   // Load 4
-  };
-
-  // --- Create chart labels ---
+  const colors = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444"];
   let chartLabels = [];
+
   if (selected === "day")
     chartLabels = [document.getElementById("singleDay").value || "Today"];
   else if (selected === "month")
@@ -200,37 +215,33 @@ document.getElementById("loadCharts").addEventListener("click", () => {
       );
   }
 
-  // --- RANDOM WH GENERATION ---
-  const datasets = deviceLabels.map((_, i) => {
-    const loadId = i + 1;
-    return {
-      label: deviceLabels[i],
-      data: chartLabels.map(() => {
-        const randIndex = Math.floor(Math.random() * whRanges[loadId].length);
-        return whRanges[loadId][randIndex];  // Always pick ONE value
-      }),
-      backgroundColor: ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444"][i],
-    };
-  });
+  const datasets = deviceLabels.map((load, i) => ({
+    label: load,
+    backgroundColor: colors[i],
+    data: chartLabels.map(() => (Math.random() * 500 + 100).toFixed(1)), // demo Wh
+  }));
 
-  // DRAW THE CHART
   chart = new Chart(ctx, {
     type: document.getElementById("chartType").value,
     data: { labels: chartLabels, datasets },
     options: {
       responsive: true,
-      plugins: { title: { display: true, text: "Power Consumption (Wh)" } }
+      plugins: {
+        title: {
+          display: true,
+          text: "Power Consumption (Wh)",
+          color: "#e2e8f0",
+        },
+      },
     },
   });
 
-  // ==================================================================
-  //  REPORT CARD BELOW CHART
-  // ==================================================================
+  // --- Show total Wh & cost for each month separately ---
   const resultDiv = document.getElementById("chartResults");
   resultDiv.innerHTML = ""; // clear old results
 
-  if (selected === "month" || selected === "monthRange" || selected === "dayRange") {
-    let html = `<h3 style="color:#e2e8f0;text-align:center;margin-top:10px;">Power Consumption Summary</h3>`;
+  if (selected === "month" || selected === "monthRange") {
+    let html = `<h3 style="color:#e2e8f0; margin-top:10px; text-align:center;">Monthly Summary</h3>`;
 
     chartLabels.forEach((label, index) => {
       let totalWh = 0;
@@ -238,22 +249,28 @@ document.getElementById("loadCharts").addEventListener("click", () => {
       const cost = calculateCost(totalWh).toFixed(2);
 
       html += `
-        <div style="margin-top:8px;background:#1e293b;padding:10px;border-radius:10px;
-            text-align:center;width:60%;margin:auto;color:#e2e8f0;box-shadow:0 0 8px #0ea5e9;">
+        <div style="
+          margin-top:8px;
+          background:#1e293b;
+          padding:10px;
+          border-radius:10px;
+          text-align:center;
+          width:60%;
+          margin-left:auto;
+          margin-right:auto;
+          color:#e2e8f0;
+          box-shadow:0 0 8px #0ea5e9;">
           <strong>${label}</strong><br>
-          🔌 Load 1: ${datasets[0].data[index]} Wh<br>
-          💡 Load 2: ${datasets[1].data[index]} Wh<br>
-          🔦 Load 3: ${datasets[2].data[index]} Wh<br>
-          🌀 Fan: ${datasets[3].data[index]} Wh<br><br>
-          <b>Total Energy:</b> ${totalWh.toFixed(2)} Wh<br>
-          <b>Total Cost:</b> ₹${cost}
+          Total Energy: ${totalWh.toFixed(2)} Wh<br>
+          Total Cost: ${cost} rupees
         </div>`;
     });
 
     resultDiv.innerHTML = html;
+  } else {
+    resultDiv.innerHTML = "";
   }
 });
-
 
 // ==================================================================
 //  PDF REPORT (IN Wh)
