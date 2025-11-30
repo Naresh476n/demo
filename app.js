@@ -82,8 +82,8 @@ setInterval(() => {
 // ==================================================================
 function updateLiveDemo() {
   let totalCurrent = 0,
-    totalPower = 0,
-    totalEnergy = 0;
+    totalPower = 0;
+    
 
   // LOAD 1  --> 12.0 - 12.3V & 0.12 - 0.14A
   if (relayStates[1]) {
@@ -132,19 +132,16 @@ function updateLiveDemo() {
     document.getElementById(`v${i}`).textContent = voltages[i - 1] + "V";
     document.getElementById(`c${i}`).textContent = currents[i - 1] + "A";
     document.getElementById(`p${i}`).textContent = power + "W";
-    document.getElementById(`e${i}`).textContent = energy + "Wh";
     document.getElementById(`s${i}`).textContent = relayStates[i] ? "ON" : "OFF";
 
     totalCurrent += parseFloat(currents[i - 1]);
     totalPower += parseFloat(power);
-    totalEnergy += parseFloat(energy);
   }
 
   // ---- TOTALS ----
   document.getElementById("tv").textContent = "12V"; // fixed input
   document.getElementById("tc").textContent = totalCurrent.toFixed(2) + "A";
   document.getElementById("tp").textContent = totalPower.toFixed(1) + "W";
-  document.getElementById("te").textContent = totalEnergy.toFixed(2) + "Wh";
 }
 
 setInterval(updateLiveDemo, 2000);
