@@ -137,12 +137,16 @@ function updateLiveDemo() {
     totalCurrent += parseFloat(currents[i - 1]);
     totalPower += parseFloat(power);
   }
+// ---- TOTALS ---- (AVERAGE VOLTAGE)
+let validVoltages = voltages.filter(v => parseFloat(v) > 0); // only ON loads
+let avgVoltage = validVoltages.length > 0
+  ? (validVoltages.reduce((a, b) => a + parseFloat(b), 0) / validVoltages.length).toFixed(1)
+  : "0.0";
 
-  // ---- TOTALS ----
-  document.getElementById("tv").textContent = "12V"; // fixed input
-  document.getElementById("tc").textContent = totalCurrent.toFixed(2) + "A";
-  document.getElementById("tp").textContent = totalPower.toFixed(1) + "W";
-}
+document.getElementById("tv").textContent = avgVoltage + "V";  // Average Voltage
+document.getElementById("tc").textContent = totalCurrent.toFixed(2) + "A"; // Total Current
+document.getElementById("tp").textContent = totalPower.toFixed(1) + "W";   // Total Power
+
 
 setInterval(updateLiveDemo, 2000);
 
