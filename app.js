@@ -72,48 +72,74 @@ setInterval(() => {
       if (hoursUsed >= usageLimits[i]) {
         document.getElementById(`relay${i}`).checked = false;
         toggleRelay(i, false);
-        addNotification(
-          `Limit reached: Load ${i} OFF after ${usageLimits[i]} hrs`
-        );
+        addNotification(`Limit reached: Load ${i} OFF after ${usageLimits[i]} hrs`);
       }
     }
   }
 }, 2000);
 
 // ==================================================================
-//  LIVE MONITORING (USING Wh)
+//  LIVE MONITORING  (UPDATED VALUES)
 // ==================================================================
 function updateLiveDemo() {
-  let totalCurrent = 0,
-    totalPower = 0,
-    totalEnergy = 0,
-    supplyVoltage = 230;
+  let totalCurrent = 0, totalPower = 0, totalEnergy = 0;
 
   for (let i = 1; i <= 4; i++) {
-    const v = 230;
-    const c = relayStates[i] ? (Math.random() * 0.5 + 0.1).toFixed(2) : 0;
+    let v = 12;
+    let c = 0;
+
+    if (relayStates[i]) {
+      if (i === 1) { // LOAD 1
+        v = (Math.random() * 0.3 + 12).toFixed(2);
+        c = (Math.random() * 0.02 + 0.12).toFixed(2);
+      } 
+      else if (i === 2) { // LOAD 2
+        v = (Math.random() * 0.2 + 12).toFixed(2);
+        c = (Math.random() * 0.01 + 0.12).toFixed(2);
+      } 
+      else if (i === 3) { // LOAD 3
+        v = 12;
+        c = 0.12;
+      } 
+      else if (i === 4) { // FAN (LOAD 4)
+        v = (Math.random() * 0.5 + 12).toFixed(2);
+        c = (Math.random() * 0.05 + 0.11).toFixed(2);
+      }
+    } else {
+      c = 0;
+    }
+
     const p = (v * c).toFixed(1);
-    const e = (c > 0 ? Math.random() * 5 : 0).toFixed(2); // energy in Wh
+    const e = (relayStates[i] ? (Math.random() * 5).toFixed(2) : 0);
 
     document.getElementById(`v${i}`).textContent = v + "V";
     document.getElementById(`c${i}`).textContent = c + "A";
     document.getElementById(`p${i}`).textContent = p + "W";
     document.getElementById(`e${i}`).textContent = e + "Wh";
-    document.getElementById(`s${i}`).textContent = relayStates[i]
-      ? "ON"
-      : "OFF";
+    document.getElementById(`s${i}`).textContent = relayStates[i] ? "ON" : "OFF";
 
     totalCurrent += parseFloat(c);
     totalPower += parseFloat(p);
     totalEnergy += parseFloat(e);
   }
 
-  document.getElementById("tv").textContent = supplyVoltage + "V";
+  document.getElementById("tv").textContent = "12V";
   document.getElementById("tc").textContent = totalCurrent.toFixed(2) + "A";
   document.getElementById("tp").textContent = totalPower.toFixed(1) + "W";
   document.getElementById("te").textContent = totalEnergy.toFixed(2) + "Wh";
 }
 setInterval(updateLiveDemo, 2000);
+
+// ==================================================================
+//  CHART SECTION (NO CHANGE)
+// ==================================================================
+// SAME CODE AS YOUR PREVIOUS VERSION...
+
+// ==================================================================
+//  PDF REPORT + NOTIFICATIONS (NO CHANGE)
+// ==================================================================
+// SAME CODE AS YOUR PREVIOUS VERSION...
+
 
 // ==================================================================
 //  CHARTS (IN Wh)
