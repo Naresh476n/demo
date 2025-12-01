@@ -160,190 +160,142 @@ setInterval(updateLiveDemo, 2000);
 //  PDF REPORT + NOTIFICATIONS (NO CHANGE)
 // ==================================================================
 // SAME CODE AS YOUR PREVIOUS VERSION...
+// ==================================================================
+//  CHART & PDF SECTION (UPDATED)
+// ==================================================================
+// ================================================================
+//  SUPABASE CONNECTION  (CHANGE WITH YOUR DETAILS)
+// ================================================================
+const SUPABASE_URL = "https://qcmtwrllhkecstwnnfik.supabase.co";
+const SUPABASE_KEY = "YeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjbXR3cmxsaGtlY3N0d25uZmlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1NjU2ODUsImV4cCI6MjA4MDE0MTY4NX0.pAtt5qH76t0GzHkljnOcIYitRisV4TyPl-s-1cZmaUg";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 
-// ==================================================================
-//  CHARTS (IN Wh)
-// ==================================================================
-const filterSelect = document.getElementById("filterSelect");
-const filterInputs = {
-  day: document.getElementById("singleDay"),
-  month: document.getElementById("singleMonth"),
-  dayRange: document.getElementById("dayRangeInputs"),
-  monthRange: document.getElementById("monthRangeInputs"),
-};
-filterSelect.addEventListener("change", () => {
-  Object.values(filterInputs).forEach((el) => el.classList.add("hidden"));
-  const selected = filterSelect.value;
-  if (filterInputs[selected]) filterInputs[selected].classList.remove("hidden");
+// ================================================================
+//  CHART & REPORT — FULL WORKING CODE
+// ================================================================
+let chartInstance;
+
+// Show / hide inputs based on selection
+document.getElementById("filterSelect").addEventListener("change", function () {
+  document.querySelectorAll(".filter-input").forEach(el => el.classList.add("hidden"));
+  const selected = this.value;
+
+  if (selected === "day") document.getElementById("singleDay").classList.remove("hidden");
+  else if (selected === "month") document.getElementById("singleMonth").classList.remove("hidden");
+  else if (selected === "dayRange") document.getElementById("dayRangeInputs").classList.remove("hidden");
+  else if (selected === "monthRange") document.getElementById("monthRangeInputs").classList.remove("hidden");
 });
 
-let chart;
 
-// --- Cost calculation ---
-function calculateCost(totalWh) {
-  if (totalWh <= 50) return totalWh * 4;
-  else if (totalWh <= 100) return totalWh * 6;
-  else return totalWh * 8;
-}
-
-// --- Chart Load Button ---
-document.getElementById("loadCharts").addEventListener("click", () => {
-  const ctx = document.getElementById("chart").getContext("2d");
-  if (chart) chart.destroy();
-
-  const selected = filterSelect.value;
-  const deviceLabels = ["Light 1", "Light 2", "Light 3", "Fan"];
-  const colors = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444"];
+// ================================================================
+//  LOAD CHART DATA FROM SUPABASE
+// ================================================================
+document.getElementById("loadCharts").addEventListener("click", async function () {
+  const selected = document.getElementById("filterSelect").value;
+  let query = supabase.from("power_logs").select("*");
   let chartLabels = [];
+  let chartData = [];
 
-  if (selected === "day")
-    chartLabels = [document.getElementById("singleDay").value || "Today"];
-  else if (selected === "month")
-    chartLabels = [document.getElementById("singleMonth").value || "This Month"];
-  else if (selected === "dayRange") {
-    const from = new Date(document.getElementById("fromDay").value);
-    const to = new Date(document.getElementById("toDay").value);
-    for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1))
-      chartLabels.push(new Date(d).toISOString().split("T")[0]);
+  if (selected === "day") {
+    const day = document.getElementById("singleDay").value;
+    query = query.eq("date", day);
+    chartLabels.push(day);
+
+  } else if (selected === "month") {
+    const monthInput = document.getElementById("singleMonth").value; // yyyy-mm format
+    const from = monthInput + "-01";
+    const to = new Date(new Date(from).getFullYear(), new Date(from).getMonth() + 1, 0)
+      .toISOString().split("T")[0];   // last date of month
+    query = query.gte("date", from).lte("date", to);
+
+  } else if (selected === "dayRange") {
+    const from = document.getElementById("fromDay").value;
+    const to = document.getElementById("toDay").value;
+    query = query.gte("date", from).lte("date", to);
+
   } else if (selected === "monthRange") {
-    const from = new Date(document.getElementById("fromMonth").value + "-01");
-    const to = new Date(document.getElementById("toMonth").value + "-01");
-    for (let d = new Date(from); d <= to; d.setMonth(d.getMonth() + 1))
-      chartLabels.push(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-      );
+    const fromMonth = document.getElementById("fromMonth").value + "-01";
+    const toMonth = document.getElementById("toMonth").value + "-01";
+    for (let d = new Date(fromMonth); d <= new Date(toMonth); d.setMonth(d.getMonth() + 1)) {
+      chartLabels.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    query = query.gte("date", fromMonth).lte("date", toMonth);
   }
 
-  const datasets = deviceLabels.map((load, i) => ({
-    label: load,
-    backgroundColor: colors[i],
-    data: chartLabels.map(() => (Math.random() * 500 + 100).toFixed(1)), // demo Wh
-  }));
-
-  chart = new Chart(ctx, {
-    type: document.getElementById("chartType").value,
-    data: { labels: chartLabels, datasets },
-    options: {
-      responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: "Power Consumption (Wh)",
-          color: "#e2e8f0",
-        },
-      },
-    },
-  });
-
-  // --- Show total Wh & cost for each month separately ---
-  const resultDiv = document.getElementById("chartResults");
-  resultDiv.innerHTML = ""; // clear old results
-
-  if (selected === "month" || selected === "monthRange") {
-    let html = `<h3 style="color:#e2e8f0; margin-top:10px; text-align:center;">Monthly Summary</h3>`;
-
-    chartLabels.forEach((label, index) => {
-      let totalWh = 0;
-      datasets.forEach((d) => (totalWh += parseFloat(d.data[index])));
-      const cost = calculateCost(totalWh).toFixed(2);
-
-      html += `
-        <div style="
-          margin-top:8px;
-          background:#1e293b;
-          padding:10px;
-          border-radius:10px;
-          text-align:center;
-          width:60%;
-          margin-left:auto;
-          margin-right:auto;
-          color:#e2e8f0;
-          box-shadow:0 0 8px #0ea5e9;">
-          <strong>${label}</strong><br>
-          Total Energy: ${totalWh.toFixed(2)} Wh<br>
-          Total Cost: ${cost} rupees
-        </div>`;
-    });
-
-    resultDiv.innerHTML = html;
-  } else {
-    resultDiv.innerHTML = "";
-  }
-});
-
-// ==================================================================
-//  PDF REPORT (IN Wh)
-// ==================================================================
-document.getElementById("downloadPdf").addEventListener("click", () => {
-  const selected = filterSelect.value;
-  if (selected !== "month" && selected !== "monthRange") {
-    alert("PDF report available only for monthly or month-range data.");
+  const { data, error } = await query;
+  if (error || !data.length) {
+    document.getElementById("chartResults").innerHTML = "<b>No data found!</b>";
+    if (chartInstance) chartInstance.destroy();
     return;
   }
 
+  // Format Data for Chart
+  data.forEach(entry => {
+    chartLabels.push(entry.date);
+    chartData.push(entry.total_power || entry.power || 0);
+  });
+
+  loadChart(chartLabels, chartData);
+  showReport(chartData);
+});
+
+
+// ================================================================
+//  LOAD CHART
+// ================================================================
+function loadChart(labels, data) {
+  const ctx = document.getElementById("chart").getContext("2d");
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: document.getElementById("chartType").value,
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Power Consumption (W)",
+        data: data,
+        borderWidth: 2,
+        fill: true
+      }]
+    },
+    options: { responsive: true }
+  });
+}
+
+
+// ================================================================
+//  SHOW REPORT SUMMARY
+// ================================================================
+function showReport(data) {
+  const total = data.reduce((a, b) => a + b, 0);
+  const avg = (total / data.length).toFixed(2);
+
+  document.getElementById("chartResults").innerHTML = `
+    <b>Total Power:</b> ${total.toFixed(2)} W  |
+    <b>Average:</b> ${avg} W |
+    <b>Entries:</b> ${data.length}
+  `;
+}
+
+
+// ================================================================
+//  PDF DOWNLOAD
+// ================================================================
+document.getElementById("downloadPdf").addEventListener("click", function () {
+  if (!chartInstance) return alert("Load chart first!");
+
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
-  const deviceLabels = ["Light 1", "Light 2", "Light 3", "Fan"];
+  const imgData = chartInstance.toBase64Image();
 
-  function generateMonthlyReport(label) {
-    pdf.setFontSize(14);
-    pdf.text(`Power Consumption Report - ${label}`, 14, 20);
-    pdf.setFontSize(10);
-    pdf.text("------------------------------------------", 14, 25);
-
-    let totalWh = 0;
-    const rows = [];
-
-    deviceLabels.forEach((load) => {
-      const used = (Math.random() * 5000 + 1000).toFixed(0);
-      totalWh += parseFloat(used);
-      rows.push([load, used]);
-    });
-
-    const cost = calculateCost(totalWh).toFixed(2);
-    let y = 35;
-    pdf.text("Load Name        | Power Used (Wh)", 14, y);
-    y += 6;
-
-    rows.forEach((r) => {
-      pdf.text(`${r[0].padEnd(16)} | ${r[1]} Wh`, 14, y);
-      y += 6;
-    });
-
-    y += 6;
-    pdf.text("------------------------------------------", 14, y);
-    y += 8;
-    pdf.text(`Total Power: ${totalWh.toFixed(0)} Wh`, 14, y);
-    y += 6;
-    pdf.text(`Cost: ${cost} rupees`, 14, y);
-  }
-
-  if (selected === "month") {
-    const val =
-      document.getElementById("singleMonth").value ||
-      new Date().toISOString().slice(0, 7);
-    const [y, m] = val.split("-");
-    const name = new Date(y, m - 1).toLocaleString("default", {
-      month: "long",
-    });
-    generateMonthlyReport(`${name} ${y}`);
-  } else {
-    const from = new Date(document.getElementById("fromMonth").value + "-01");
-    const to = new Date(document.getElementById("toMonth").value + "-01");
-    let first = true;
-    for (let d = new Date(from); d <= to; d.setMonth(d.getMonth() + 1)) {
-      if (!first) pdf.addPage();
-      const label = `${d.toLocaleString("default", {
-        month: "long",
-      })} ${d.getFullYear()}`;
-      generateMonthlyReport(label);
-      first = false;
-    }
-  }
-
-  pdf.save("Monthly_Report_Wh.pdf");
+  pdf.text("Power Usage Report", 10, 10);
+  pdf.addImage(imgData, "PNG", 10, 20, 180, 100);
+  pdf.text(document.getElementById("chartResults").innerText, 10, 130);
+  pdf.save("report.pdf");
 });
+
+
 
 // ==================================================================
 //  NOTIFICATIONS + LOGOUT
