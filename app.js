@@ -152,6 +152,7 @@ function updateLiveDemo() {
 setInterval(updateLiveDemo, 2000);
 
 // ==================================================================
+<<<<<<< HEAD
 //  CHART & PDF SECTION (UPDATED)
 // ==================================================================
 const filterSelect = document.getElementById("filterSelect");
@@ -167,10 +168,45 @@ filterSelect.addEventListener("change", () => {
   Object.values(filterInputs).forEach(el => el.classList.add("hidden"));
   const selected = filterSelect.value;
   if (filterInputs[selected]) filterInputs[selected].classList.remove("hidden");
+=======
+//  CHART SECTION (NO CHANGE)
+// ==================================================================
+// SAME CODE AS YOUR PREVIOUS VERSION...
+
+// ==================================================================
+//  PDF REPORT + NOTIFICATIONS (NO CHANGE)
+// ==================================================================
+// SAME CODE AS YOUR PREVIOUS VERSION...
+// ==================================================================
+//  CHART & PDF SECTION (UPDATED)
+// ==================================================================
+// ================================================================
+//  SUPABASE CONNECTION  (CHANGE WITH YOUR DETAILS)
+// ================================================================
+const SUPABASE_URL = "https://qcmtwrllhkecstwnnfik.supabase.co";
+const SUPABASE_KEY = "YeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjbXR3cmxsaGtlY3N0d25uZmlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1NjU2ODUsImV4cCI6MjA4MDE0MTY4NX0.pAtt5qH76t0GzHkljnOcIYitRisV4TyPl-s-1cZmaUg";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
+// ================================================================
+//  CHART & REPORT — FULL WORKING CODE
+// ================================================================
+let chartInstance;
+
+// Show / hide inputs based on selection
+document.getElementById("filterSelect").addEventListener("change", function () {
+  document.querySelectorAll(".filter-input").forEach(el => el.classList.add("hidden"));
+  const selected = this.value;
+
+  if (selected === "day") document.getElementById("singleDay").classList.remove("hidden");
+  else if (selected === "month") document.getElementById("singleMonth").classList.remove("hidden");
+  else if (selected === "dayRange") document.getElementById("dayRangeInputs").classList.remove("hidden");
+  else if (selected === "monthRange") document.getElementById("monthRangeInputs").classList.remove("hidden");
+>>>>>>> c511053f3a62d5fffd8421b9aa85bfcbb71ce60e
 });
 
-let chart;
 
+<<<<<<< HEAD
 // Fixed energy ranges per load (Wh) for demo-only (used for month/monthRange)
 const energyRanges = {
   load1: [1.5, 3, 4.5, 6, 7.5],
@@ -397,11 +433,108 @@ document.getElementById("downloadPdf").addEventListener("click", () => {
   const selected = filterSelect.value;
   if (selected !== "month" && selected !== "monthRange") {
     alert("PDF only available for month or month-range!");
+=======
+// ================================================================
+//  LOAD CHART DATA FROM SUPABASE
+// ================================================================
+document.getElementById("loadCharts").addEventListener("click", async function () {
+  const selected = document.getElementById("filterSelect").value;
+  let query = supabase.from("power_logs").select("*");
+  let chartLabels = [];
+  let chartData = [];
+
+  if (selected === "day") {
+    const day = document.getElementById("singleDay").value;
+    query = query.eq("date", day);
+    chartLabels.push(day);
+
+  } else if (selected === "month") {
+    const monthInput = document.getElementById("singleMonth").value; // yyyy-mm format
+    const from = monthInput + "-01";
+    const to = new Date(new Date(from).getFullYear(), new Date(from).getMonth() + 1, 0)
+      .toISOString().split("T")[0];   // last date of month
+    query = query.gte("date", from).lte("date", to);
+
+  } else if (selected === "dayRange") {
+    const from = document.getElementById("fromDay").value;
+    const to = document.getElementById("toDay").value;
+    query = query.gte("date", from).lte("date", to);
+
+  } else if (selected === "monthRange") {
+    const fromMonth = document.getElementById("fromMonth").value + "-01";
+    const toMonth = document.getElementById("toMonth").value + "-01";
+    for (let d = new Date(fromMonth); d <= new Date(toMonth); d.setMonth(d.getMonth() + 1)) {
+      chartLabels.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    query = query.gte("date", fromMonth).lte("date", toMonth);
+  }
+
+  const { data, error } = await query;
+  if (error || !data.length) {
+    document.getElementById("chartResults").innerHTML = "<b>No data found!</b>";
+    if (chartInstance) chartInstance.destroy();
+>>>>>>> c511053f3a62d5fffd8421b9aa85bfcbb71ce60e
     return;
   }
 
+  // Format Data for Chart
+  data.forEach(entry => {
+    chartLabels.push(entry.date);
+    chartData.push(entry.total_power || entry.power || 0);
+  });
+
+  loadChart(chartLabels, chartData);
+  showReport(chartData);
+});
+
+
+// ================================================================
+//  LOAD CHART
+// ================================================================
+function loadChart(labels, data) {
+  const ctx = document.getElementById("chart").getContext("2d");
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: document.getElementById("chartType").value,
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Power Consumption (W)",
+        data: data,
+        borderWidth: 2,
+        fill: true
+      }]
+    },
+    options: { responsive: true }
+  });
+}
+
+
+// ================================================================
+//  SHOW REPORT SUMMARY
+// ================================================================
+function showReport(data) {
+  const total = data.reduce((a, b) => a + b, 0);
+  const avg = (total / data.length).toFixed(2);
+
+  document.getElementById("chartResults").innerHTML = `
+    <b>Total Power:</b> ${total.toFixed(2)} W  |
+    <b>Average:</b> ${avg} W |
+    <b>Entries:</b> ${data.length}
+  `;
+}
+
+
+// ================================================================
+//  PDF DOWNLOAD
+// ================================================================
+document.getElementById("downloadPdf").addEventListener("click", function () {
+  if (!chartInstance) return alert("Load chart first!");
+
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
+<<<<<<< HEAD
 
   function generateReport(label) {
     pdf.setFontSize(14);
@@ -440,7 +573,17 @@ document.getElementById("downloadPdf").addEventListener("click", () => {
   }
 
   pdf.save("Monthly_Report_Wh.pdf");
+=======
+  const imgData = chartInstance.toBase64Image();
+
+  pdf.text("Power Usage Report", 10, 10);
+  pdf.addImage(imgData, "PNG", 10, 20, 180, 100);
+  pdf.text(document.getElementById("chartResults").innerText, 10, 130);
+  pdf.save("report.pdf");
+>>>>>>> c511053f3a62d5fffd8421b9aa85bfcbb71ce60e
 });
+
+
 
 // ==================================================================
 //  NOTIFICATIONS + LOGOUT
